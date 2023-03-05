@@ -1,9 +1,12 @@
 import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import { mongoConnect } from './routes/database/mongo';
 import mainRoutes from './routes/api';
 
 dotenv.config();
+
+mongoConnect();
 
 const app = express();
 
