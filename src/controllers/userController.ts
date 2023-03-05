@@ -1,6 +1,10 @@
 import { Request, Response } from 'express';
+import JWT from 'jsonwebtoken';
+import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
 import User from '../models/User';
+
+dotenv.config();
 
 export const login = async (req: Request, res: Response) => {
     if(req.body.email && req.body.password) {
@@ -13,7 +17,13 @@ export const login = async (req: Request, res: Response) => {
             let passwordCorrect = await bcrypt.compare(password, hasUser.password);
 
             if(passwordCorrect) {
-                res.json({ login: true });
+                const token = JWT.sign(
+                    { id: hasUser.id, email: hasUser.email },
+                    process.env.JWT_SECRET_KEY as string,
+                    { expiresIn: '2h' }
+                );
+
+                res.json({ login: true, token: token });
             } else {
                 res.status(404);
                 res.json({ error: 'password is not correct' });
@@ -48,7 +58,13 @@ export const register = async (req: Request, res: Response) => {
                 password: hashPassword
             });
 
-            res.json({ newUser: newUser });
+            const token = JWT.sign(
+                {id: newUser.id, email: newUser.email},
+                process.env.JWT_SECRET_KEY as string,
+                { expiresIn: '2h' }
+            );
+
+            res.json({ newUser: newUser, token: token });
         }
 
     } else {
