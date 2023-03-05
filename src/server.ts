@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import { mongoConnect } from './routes/database/mongo';
+import { mongoConnect } from './database/mongo';
 import mainRoutes from './routes/api';
 
 dotenv.config();
