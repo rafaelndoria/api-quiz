@@ -1,9 +1,10 @@
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
+import * as UserController from '../controllers/userController';
 
 const router = Router();
 
-router.get('/ping', (req: Request, res: Response) => {
-    res.json({ pong: true });
-});
+// USER
+router.post('/login', UserController.login);
+router.post('/register', UserController.register);
 
 export default router;
