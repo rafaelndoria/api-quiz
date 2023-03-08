@@ -43,13 +43,16 @@ export const login = async (req: Request, res: Response) => {
 export const register = async (req: Request, res: Response) => {
     if(req.body.email && req.body.password && req.body.user) {
         let { user, email, password } = req.body;
-        let hasUser = await User.findOne({
+        let hasUserEmail = await User.findOne({
             email
         });
+        let hasUserName = await User.findOne({
+            user
+        });
 
-        if(hasUser) {
+        if(hasUserEmail || hasUserName) {
             res.status(400);
-            res.json({ error: 'email already exists' });
+            res.json({ error: 'email or user already exists' });
         } else {
             let hashPassword: string = await bcrypt.hash(password, 10);
             let newUser = await User.create({
