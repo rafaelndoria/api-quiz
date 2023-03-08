@@ -25,18 +25,15 @@ export const login = async (req: Request, res: Response) => {
 
                 res.json({ login: true, token: token });
             } else {
-                res.status(404);
-                res.json({ error: 'password is not correct' });
+                res.status(404).json({ error: 'password is not correct' });
             }
 
         } else {
-            res.status(400);
-            res.json({ error: 'user does not exists' });
+            res.status(400).json({ error: 'user does not exists' });
         }
 
     } else {
-        res.status(400);
-        res.json({ error: 'missing data' });
+        res.status(400).json({ error: 'missing data' });
     }
 }
 
@@ -51,8 +48,7 @@ export const register = async (req: Request, res: Response) => {
         });
 
         if(hasUserEmail || hasUserName) {
-            res.status(400);
-            res.json({ error: 'email or user already exists' });
+            res.status(400).json({ error: 'email or user already exists' });
         } else {
             let hashPassword: string = await bcrypt.hash(password, 10);
             let newUser = await User.create({
@@ -71,7 +67,6 @@ export const register = async (req: Request, res: Response) => {
         }
 
     } else {
-        res.status(400);
-        res.json({ error: 'missing data' });
+        res.status(400).json({ error: 'missing data' });
     }
 }

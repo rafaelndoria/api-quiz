@@ -8,52 +8,7 @@ interface DataBaseInterface extends Document {
     questions: [
         {
             titleAsk: string,
-            alternative: [string],
-            correct: number
-        },
-        {
-            titleAsk: string,
-            alternative: [string],
-            correct: number
-        },
-        {
-            titleAsk: string,
-            alternative: [string],
-            correct: number
-        },
-        {
-            titleAsk: string,
-            alternative: [string],
-            correct: number
-        },
-        {
-            titleAsk: string,
-            alternative: [string],
-            correct: number
-        },
-        {
-            titleAsk: string,
-            alternative: [string],
-            correct: number
-        },
-        {
-            titleAsk: string,
-            alternative: [string],
-            correct: number
-        },
-        {
-            titleAsk: string,
-            alternative: [string],
-            correct: number
-        },
-        {
-            titleAsk: string,
-            alternative: [string],
-            correct: number
-        },
-        {
-            titleAsk: string,
-            alternative: [string],
+            alternative: [string, string, string, string, string],
             correct: number
         }
     ]
@@ -67,52 +22,7 @@ const DBSchema = new Schema<DataBaseInterface>({
     questions: [
         {
             titleAsk: String,
-            alternative: [String],
-            correct: Number
-        },
-        {
-            titleAsk: String,
-            alternative: [String],
-            correct: Number
-        },
-        {
-            titleAsk: String,
-            alternative: [String],
-            correct: Number
-        },
-        {
-            titleAsk: String,
-            alternative: [String],
-            correct: Number
-        },
-        {
-            titleAsk: String,
-            alternative: [String],
-            correct: Number
-        },
-        {
-            titleAsk: String,
-            alternative: [String],
-            correct: Number
-        },
-        {
-            titleAsk: String,
-            alternative: [String],
-            correct: Number
-        },
-        {
-            titleAsk: String,
-            alternative: [String],
-            correct: Number
-        },
-        {
-            titleAsk: String,
-            alternative: [String],
-            correct: Number
-        },
-        {
-            titleAsk: String,
-            alternative: [String],
+            alternative: [String, String, String, String, String],
             correct: Number
         }
     ]

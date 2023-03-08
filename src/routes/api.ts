@@ -25,10 +25,10 @@ const router = Router();
 
 // USER
 router.post('/login', UserController.login);
-router.post('/register', UserController.register);
+router.post('/create', UserController.register);
 
 // CREATE QUIZ
 router.post('/:user/create/config', Auth.private, upload.single('img'), QuizController.createConfig);
-router.post('/:user/create/question-:q', Auth.private, QuizController.createQuestion);
+router.post('/:idQuiz/create/question', Auth.private, QuizController.createQuestion);
 
 export default router;
