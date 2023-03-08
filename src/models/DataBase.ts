@@ -4,6 +4,7 @@ interface DataBaseInterface extends Document {
     title: string,
     desc: string,
     img: string,
+    type: string,
     questions: [
         {
             titleAsk: string,
@@ -62,6 +63,7 @@ const DBSchema = new Schema<DataBaseInterface>({
     title: String,
     desc: String,
     img: String,
+    type: String,
     questions: [
         {
             titleAsk: String,

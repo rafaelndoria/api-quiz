@@ -4,14 +4,14 @@ interface UserInterface extends Document {
     user: string;
     email: string;
     password: string;
-    data_bases: [number]
+    data_bases: [string]
 }
 
 const UserSchema = new Schema<UserInterface>({
     user: String,
     email: String,
     password: String,
-    data_bases: [Number]
+    data_bases: [String]
 });
 
 const modelName: string = 'User';
