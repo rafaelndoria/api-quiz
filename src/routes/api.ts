@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { Auth } from '../middlewares/auth';
 import multer from 'multer';
 import * as UserController from '../controllers/userController';
-import * as QuizController from '../controllers/createQuiz';
+import * as CreateQuizController from '../controllers/createQuiz';
+import * as QuizController from '../controllers/quizController';
 
 const storage = multer.diskStorage({
     filename: (req, file, cb) => {
@@ -28,7 +29,11 @@ router.post('/login', UserController.login);
 router.post('/create', UserController.register);
 
 // CREATE QUIZ
-router.post('/:user/create/config', Auth.private, upload.single('img'), QuizController.createConfig);
-router.post('/:idQuiz/create/question', Auth.private, QuizController.createQuestion);
+router.post('/:user/create/config', Auth.private, upload.single('img'), CreateQuizController.createConfig);
+router.post('/:idQuiz/create/question', Auth.private, CreateQuizController.createQuestion);
+
+// QUIZ
+router.get('/quizzes', QuizController.allQuiz);
+router.get('/quizzes/:id', QuizController.idQuiz);
 
 export default router;
