@@ -27,6 +27,8 @@ const router = Router();
 // USER
 router.post('/login', UserController.login);
 router.post('/create', UserController.register);
+router.get('/users', UserController.allUser);
+router.get('/:id/all-quizzes', UserController.showQuizzes);
 
 // CREATE QUIZ
 router.post('/:user/create/config', Auth.private, upload.single('img'), CreateQuizController.createConfig);

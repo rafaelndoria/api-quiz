@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import JWT from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
+import mongoose from 'mongoose';
 import User from '../models/User';
 
 dotenv.config();
@@ -66,6 +67,33 @@ export const register = async (req: Request, res: Response) => {
             res.json({ newUser: newUser, token: token });
         }
 
+    } else {
+        res.status(400).json({ error: 'missing data' });
+    }
+}
+
+export const allUser = async (req: Request, res: Response) => {
+    let users = await User.find({}, {user: 1, _id: 1});
+
+    res.json({ users: users });
+}
+
+export const showQuizzes = async (req: Request, res: Response) => {
+    let id = req.params.id;
+
+    if(id) {
+        if(mongoose.Types.ObjectId.isValid(id)) {
+            let user = await User.findById(id);
+
+            if(user) {
+                res.json({ quizzes: user.data_bases });
+            } else {
+                return res.status(400).json({ error: 'user not exist' });
+            }
+
+        } else {
+            return res.status(400).json({ error: 'id is not valid' });
+        }
     } else {
         res.status(400).json({ error: 'missing data' });
     }
