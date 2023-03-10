@@ -42,5 +42,6 @@ router.get('/quizzes/:offset/:pageNumber', QuizController.filterQuiz);
 
 // SEARCH
 router.get('/search/:text', SearchController.search);
+router.get('/search/type/:type', SearchController.searchTypes);
 
 export default router;

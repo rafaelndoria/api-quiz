@@ -14,3 +14,17 @@ export const search = async (req: Request, res: Response) => {
         res.status(400).json({ error: 'parameter not found' });
     }
 }
+
+export const searchTypes = async (req: Request, res: Response) => {
+    let search = req.params.type;
+
+    let quiz = await DataBase.find({
+        type: search
+    });
+
+    if(quiz.length >= 1) {
+        res.json({ quiz: quiz });
+    } else {
+        res.json({ error: 'quizs type does not exist' });
+    }
+}
