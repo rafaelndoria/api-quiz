@@ -4,6 +4,7 @@ import multer from 'multer';
 import * as UserController from '../controllers/userController';
 import * as CreateQuizController from '../controllers/createQuiz';
 import * as QuizController from '../controllers/quizController';
+import * as SearchController from '../controllers/searchController';
 
 const storage = multer.diskStorage({
     filename: (req, file, cb) => {
@@ -38,5 +39,8 @@ router.post('/:idQuiz/create/question', Auth.private, CreateQuizController.creat
 router.get('/quizzes', QuizController.allQuiz);
 router.get('/quizzes/:id', QuizController.idQuiz);
 router.get('/quizzes/:offset/:pageNumber', QuizController.filterQuiz);
+
+// SEARCH
+router.get('/search/:text', SearchController.search);
 
 export default router;
