@@ -37,5 +37,6 @@ router.post('/:idQuiz/create/question', Auth.private, CreateQuizController.creat
 // QUIZ
 router.get('/quizzes', QuizController.allQuiz);
 router.get('/quizzes/:id', QuizController.idQuiz);
+router.get('/quizzes/:offset/:pageNumber', QuizController.filterQuiz);
 
 export default router;

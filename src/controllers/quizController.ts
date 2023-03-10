@@ -29,3 +29,24 @@ export const idQuiz = async (req: Request, res: Response) => {
     }
     
 }
+
+export const filterQuiz = async (req: Request, res: Response) => {
+   
+    if(req.params.offset && req.params.pageNumber) {
+        let offset: number = parseInt(req.params.offset);
+        let pageNumber: number = parseInt(req.params.pageNumber) - 1;
+
+        if(pageNumber >= 0) {
+
+            let quiz = await DataBase.find({}).limit(offset).skip(pageNumber);
+
+            res.json({ quizzes: quiz });
+        } else {
+            return res.status(400).json({ error: 'page invalid' });
+        }
+
+    } else {
+        return res.status(400).json({ error: 'missing data' });
+    }
+
+}
