@@ -33,13 +33,14 @@ router.get('/:id/all-quizzes', UserController.showQuizzes);
 router.put('/change/:newPassword?/:newEmail?', Auth, UserController.changeInfo);
 
 // CREATE QUIZ
-router.post('/:user/create/config', Auth, upload.single('img'), CreateQuizController.createConfig);
-router.post('/:idQuiz/create/question', Auth, CreateQuizController.createQuestion);
+router.post('/:user/create/quiz/config', Auth, upload.single('img'), CreateQuizController.createConfig);
+router.post('/:idQuiz/create/quiz/question', Auth, CreateQuizController.createQuestion);
 
 // QUIZ
 router.get('/quizzes', QuizController.allQuiz);
 router.get('/quizzes/:id', QuizController.idQuiz);
 router.get('/quizzes/:offset/:pageNumber', QuizController.filterQuiz);
+router.get('/play/quiz/:idQuiz', QuizController.playQuiz);
 router.delete('/quizzes/delete/:idQuiz', Auth, QuizController.deleteQuiz);
 
 // SEARCH

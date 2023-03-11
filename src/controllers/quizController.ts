@@ -81,3 +81,32 @@ export const deleteQuiz = async (req: AuthRequest, res: Response) => {
     }
 
 }
+
+export const playQuiz = async (req: Request, res: Response) => {
+    if(req.params.idQuiz) {
+        const idQuiz = req.params.idQuiz;
+
+        if(mongoose.Types.ObjectId.isValid(idQuiz)) {
+            let hasQuiz = await DataBase.findById(idQuiz);
+
+            // add more on count in play for quiz
+            if(hasQuiz) {
+                let plays = hasQuiz.plays;
+                hasQuiz.plays = plays + 1;
+                await hasQuiz.save();
+
+                res.json({ questions: hasQuiz.questions });
+
+            } else {
+                return res.status(400).json({ error: 'quiz not found' });
+            }
+
+
+        } else {
+        return res.status(400).json({ error: 'id is not valid' });
+        }
+
+    } else {    
+        return res.status(400).json({ error: 'missing data' });
+    }
+}
