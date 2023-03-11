@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
+import { AuthRequest } from '../middlewares/auth';
 import mongoose from 'mongoose';
 import DataBase from '../models/DataBase';
+import User from '../models/User';
 
 export const allQuiz = async (req: Request, res: Response) => {
     let quizzes = await DataBase.find({});
@@ -47,6 +49,35 @@ export const filterQuiz = async (req: Request, res: Response) => {
 
     } else {
         return res.status(400).json({ error: 'missing data' });
+    }
+
+}
+
+export const deleteQuiz = async (req: AuthRequest, res: Response) => {
+    const userId = req.userId;
+    const quizId = req.params.idQuiz;
+    const userQuiz = await User.findOne({
+        data_bases: quizId,
+        _id: userId
+    });
+
+    if (!quizId) {
+        return res.status(400).json({ error: 'missing data' });
+    }
+
+    if(userQuiz) {
+
+        await DataBase.deleteOne({
+            _id: quizId
+        }).then(() => {
+            res.json({ delete: true });
+        }).catch((err) => {
+            console.log(err);
+            res.json({ delete: false });
+        });
+
+    } else {
+        res.status(401).json({ error: 'not authorized, only users quiz' });
     }
 
 }
