@@ -89,7 +89,7 @@ export const playQuiz = async (req: Request, res: Response) => {
         if(mongoose.Types.ObjectId.isValid(idQuiz)) {
             let hasQuiz = await DataBase.findById(idQuiz);
 
-            // add more on count in play for quiz
+            // add more one count in plays for quiz
             if(hasQuiz) {
                 let plays = hasQuiz.plays;
                 hasQuiz.plays = plays + 1;

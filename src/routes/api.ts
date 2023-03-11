@@ -46,5 +46,6 @@ router.delete('/quizzes/delete/:idQuiz', Auth, QuizController.deleteQuiz);
 // SEARCH
 router.get('/search/:text', SearchController.search);
 router.get('/search/type/:type', SearchController.searchTypes);
+router.get('/search/order/:type', SearchController.order);
 
 export default router;
