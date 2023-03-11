@@ -30,6 +30,7 @@ router.post('/login', UserController.login);
 router.post('/create', UserController.register);
 router.get('/users', UserController.allUser);
 router.get('/:id/all-quizzes', UserController.showQuizzes);
+router.put('/change/:newPassword?/:newEmail?', Auth, UserController.changeInfo);
 
 // CREATE QUIZ
 router.post('/:user/create/config', Auth, upload.single('img'), CreateQuizController.createConfig);

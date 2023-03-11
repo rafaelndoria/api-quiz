@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { AuthRequest } from '../middlewares/auth';
 import JWT from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
@@ -96,5 +97,56 @@ export const showQuizzes = async (req: Request, res: Response) => {
         }
     } else {
         res.status(400).json({ error: 'missing data' });
+    }
+}
+
+export const changeInfo = async (req: AuthRequest, res: Response) => {
+    const userId = req.userId;
+    const { newPassword, newEmail } = req.params;
+    let email: boolean = false;
+    let password: boolean = false;
+
+    // verify if user dont sent any date or if send false in two parameter
+    if((!newPassword && !newEmail) || (newPassword.toLowerCase() === 'false' && newEmail.toLowerCase() === 'false') || (!newEmail)) {
+        return res.status(400).json({ error: 'missing data' });
+    }
+
+    // if send password, save new password in database
+    if(newPassword.toLowerCase() !== 'false') {
+        const hashPassword: string = await bcrypt.hash(newPassword, 10);
+
+        await User.updateOne(
+            { _id: userId },
+            { password: hashPassword }
+        );
+
+        password = true;
+    }
+
+    // if send email, save new email in database
+    if(newEmail.toLowerCase() !== 'false') {
+        const hasEmail = await User.findOne({
+            email: newEmail
+        });
+        if(!hasEmail) {
+            await User.updateOne(
+                { _id: userId },
+                { email: newEmail }
+            );
+        } else {
+            return res.status(400).json({ error: 'email already exist' });
+        }
+
+        email = true;
+    }
+
+    const user = await User.findById(userId);
+
+    if(email && password) {
+        return res.json({ changed: true, newEmail: user?.email, newPassword: user?.password });
+    } else if(email) {
+        return res.json({ changed: true, newEmail: user?.email })
+    } else {
+        return res.json({ changed: true, newPassword: user?.password })
     }
 }
