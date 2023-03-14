@@ -1,9 +1,20 @@
 import { Request, Response } from 'express';
 import { unlink } from 'fs/promises';
+import { AuthRequest } from '../middlewares/auth';
 import sharp from 'sharp';
 import mongoose from 'mongoose';
 import DataBase from '../models/DataBase';
 import User from '../models/User';
+
+interface AlternativeInstances {
+    title: string,
+    correct: number,
+    a1: string,
+    a2: string,
+    a3: string,
+    a4: string,
+    a5: string
+}
 
 export const createConfig = async (req: Request, res: Response) => {
     let user = req.params.user;
@@ -51,16 +62,6 @@ export const createConfig = async (req: Request, res: Response) => {
 export const createQuestion = async (req: Request, res: Response) => {
     let quiz;
 
-    interface AlternativeInstances {
-        title: string,
-        correct: number,
-        a1: string,
-        a2: string,
-        a3: string,
-        a4: string,
-        a5: string
-    }
-
     if(mongoose.Types.ObjectId.isValid(req.params.idQuiz)) {
         quiz = await DataBase.findOne({
             _id: req.params.idQuiz
@@ -97,3 +98,61 @@ export const createQuestion = async (req: Request, res: Response) => {
     }
 }
 
+export const changeConfig = async (req: AuthRequest, res: Response) => {
+    const userId = req.userId;
+    const { title, desc, type } = req.params;
+
+    // verify id
+    if(mongoose.Types.ObjectId.isValid(req.params.idQuiz)) {
+        const idQuiz = req.params.idQuiz;
+        const user = await User.findOne({
+            _id: userId,
+            data_bases: idQuiz
+        });
+
+        // verify if exist user
+        if(!user) {
+            return res.status(401).json({ error: 'not authorized' });
+        }
+
+        // check if all parameters are false
+        if(title && desc && type) {
+            if(title.toLowerCase() === 'false' && desc.toLowerCase() === 'false' && type.toLowerCase() === 'false') {
+                return res.status(400).json({ error: 'nothing parameter for to change' });
+            }
+        }
+
+        // check if all parameter are dont send
+        if(!title && !desc && !type) {
+            return res.status(400).json({ error: 'missing data' });
+        }
+
+        // if parameter is not false, so update in database
+        if(title.toLowerCase() !== 'false') {
+            await DataBase.updateOne(
+                { _id: idQuiz },
+                { title }
+            );
+        }
+        if(desc.toLowerCase() !== 'false') {
+            await DataBase.updateOne(
+                { _id: idQuiz },
+                { desc }
+            );
+        }
+        if(type.toLowerCase() !== 'false') {
+            await DataBase.updateOne(
+                { _id: idQuiz },
+                { type }
+            );
+        }
+
+        let quiz = await DataBase.findById(idQuiz);
+        res.json({ changed: true, quiz });
+        
+
+    } else {
+        return res.status(400).json({ error: 'id is not valid' });
+    }
+
+}
