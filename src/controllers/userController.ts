@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
 import mongoose from 'mongoose';
 import User from '../models/User';
+import DataBase from '../models/DataBase';
 
 dotenv.config();
 
@@ -148,5 +149,33 @@ export const changeInfo = async (req: AuthRequest, res: Response) => {
         return res.json({ changed: true, newEmail: user?.email })
     } else {
         return res.json({ changed: true, newPassword: user?.password })
+    }
+}
+
+export const saveFavorite = async (req: AuthRequest, res: Response) => {
+    const idUser = req.userId;
+
+    // verify if id is valid
+    if(mongoose.Types.ObjectId.isValid(req.params.idQuiz)) {
+        const idQuiz = req.params.idQuiz;
+        const user = await User.findById(idUser);
+        const quiz = await DataBase.findById(idQuiz);
+
+        // verify if user exist
+        if(user) {
+            // verify if quiz exist, because dont will save a quiz that does not exist
+            if(quiz) {
+                // adding favorite quiz in field favorites the user
+                user.favorites.push(idQuiz);
+                await user.save();
+
+                return res.json({ idQuiz, favorites: user.favorites });
+            } else {
+                return res.status(400).json({ error: 'quiz does not exist' });
+            }
+        }
+
+    } else {
+        return res.status(400).json({ error: 'id is not valid' });
     }
 }

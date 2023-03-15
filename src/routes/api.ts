@@ -31,6 +31,7 @@ router.post('/create', UserController.register);
 router.get('/users', UserController.allUser);
 router.get('/user-:id/all-quizzes', UserController.showQuizzes);
 router.put('/change-user/:newPassword?/:newEmail?', Auth, UserController.changeInfo);
+router.put('/user/save/favorite/:idQuiz', Auth, UserController.saveFavorite);
 
 // CREATE QUIZ
 router.post('/:user/create/quiz/config', Auth, upload.single('img'), CreateQuizController.createConfig);
