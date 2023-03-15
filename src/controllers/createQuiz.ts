@@ -1,8 +1,10 @@
 import { Request, Response } from 'express';
 import { unlink } from 'fs/promises';
+import fs from 'fs';
 import { AuthRequest } from '../middlewares/auth';
 import sharp from 'sharp';
 import mongoose from 'mongoose';
+import path from 'path'; 
 import DataBase from '../models/DataBase';
 import User from '../models/User';
 
@@ -155,4 +157,63 @@ export const changeConfig = async (req: AuthRequest, res: Response) => {
         return res.status(400).json({ error: 'id is not valid' });
     }
 
+}
+
+export const changeImg = async (req: AuthRequest, res: Response) => {
+    const userId = req.userId;
+
+    // verify if id is valid
+    if(mongoose.Types.ObjectId.isValid(req.params.idQuiz)) {
+
+        // checks if img is being sent in the request
+        if(req.file) {
+            const idQuiz = req.params.idQuiz;
+            const user = await User.findOne({ _id: userId, data_bases: idQuiz });
+            const quiz = await DataBase.findById(idQuiz);
+
+            // verify if quiz exist
+            if(!quiz) {
+                return res.status(400).json({ error: 'quiz not found' });
+            }
+
+            if(user) {
+            const oldImgName = quiz.img;
+            const pathImg = path.join(__dirname, '../../public/media', oldImgName);
+
+            // checks if there is an image for that quiz, if it exists, delete it 
+            fs.access(pathImg, fs.constants.F_OK, async (err) => {
+                if(!err) {
+                    await unlink(pathImg);
+                }
+            });
+
+            // add new img in public/media and delete img in tmp
+            let filename = `${req.file.filename}.jpg`;
+            await sharp(req.file.path)
+                .resize(500)
+                .toFormat('jpeg')
+                .toFile(`./public/media/${filename}`);
+            
+            await unlink(req.file.path);
+            
+            // save filename img in database
+            await DataBase.updateOne(
+                { _id: idQuiz },
+                { img: filename }
+            );
+        
+            res.json({ changed: true, filename });
+
+            } else {
+                return res.status(401).json({ error: 'not authorized' });
+            }
+
+        } else {
+            return res.status(400).json({ error: 'not send img' });
+        }
+        
+    } else {
+        return res.status(400).json({ error: 'id is not valid' });
+    }
+ 
 }
