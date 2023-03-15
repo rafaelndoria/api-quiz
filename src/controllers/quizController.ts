@@ -110,3 +110,53 @@ export const playQuiz = async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'missing data' });
     }
 }
+
+export const changeQuestion = async (req: AuthRequest, res: Response) => {
+    let { idQuiz, nQuestion, newTitle } = req.params;
+
+    // verify if send all parameters
+    if(idQuiz && nQuestion && newTitle) {
+        // verify id is valid
+        if(mongoose.Types.ObjectId.isValid(req.params.idQuiz)) {
+            let idQuiz = req.params.idQuiz;
+            let userId = req.userId;
+            let hasUser = await User.findOne(
+                { _id: userId, data_bases: idQuiz }
+            );
+            
+            // check if not found quiz in the user
+            if(!hasUser) {
+                return res.status(401).json({ error: 'not authorized' });
+            }
+
+            // max questions is 10
+            if(parseInt(nQuestion) <= 10 && parseInt(nQuestion) > 0) {
+                let number: number = parseInt(nQuestion) - 1;
+                let quiz = await DataBase.findById(idQuiz);
+
+                // verify if exist question with number 
+                if(quiz?.questions[number]) {
+
+                    // change title and save in database
+                    quiz.questions[number].titleAsk = newTitle;
+                    await quiz.save();
+
+                    return res.json({ newTitle: quiz.questions[number].titleAsk });
+
+                } else {
+                    return res.status(400).json({ error: 'question not exist' });
+                }
+
+            } else {
+                return res.status(400).json({ error: 'number page is not valid' });
+            }
+    
+        } else {
+            return res.status(400).json({ error: 'id is not valid' });
+        }
+
+    } else {
+        return res.status(400).json({ error: 'missing data' });
+    }
+
+}

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
+import { AuthRequest } from '../middlewares/auth';
 import { unlink } from 'fs/promises';
 import fs from 'fs';
-import { AuthRequest } from '../middlewares/auth';
 import sharp from 'sharp';
 import mongoose from 'mongoose';
 import path from 'path'; 
