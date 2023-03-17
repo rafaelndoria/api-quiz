@@ -1,18 +1,18 @@
 import { Schema, Model, model, Document } from 'mongoose';
 
 interface DataBaseInterface extends Document {
-    title: string,
-    desc: string,
-    img: string,
-    type: string,
-    plays: number,
+    title: string;
+    desc: string;
+    img: string;
+    type: string;
+    plays: number;
     questions: [
         {
             titleAsk: string,
             alternative: [string, string, string, string, string],
             correct: number
         }
-    ]
+    ];
 }
 
 const DBSchema = new Schema<DataBaseInterface>({
