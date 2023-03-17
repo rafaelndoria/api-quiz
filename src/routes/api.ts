@@ -47,6 +47,7 @@ router.get('/play/quiz/:idQuiz', QuizController.playQuiz);
 router.delete('/quizzes/delete/:idQuiz', Auth, QuizController.deleteQuiz);
 router.put('/change/question/:idQuiz/:nQuestion/:newTitle', Auth, QuizController.changeQuestion);
 router.put('/change/alternative/:idQuiz/:nQuestion/:nAlternative/:text', Auth, QuizController.changeAlterntative);
+router.put('/change/correct/:idQuiz/:nQuestion/:correct', Auth, QuizController.changeCorrect);
 
 // SEARCH
 router.get('/search/:text', SearchController.search);

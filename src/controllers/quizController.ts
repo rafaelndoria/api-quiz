@@ -165,22 +165,77 @@ export const changeAlterntative = async (req: AuthRequest, res: Response) => {
     const userId = req.userId;
     const { idQuiz, nAlternative, nQuestion, text } = req.params;
 
+    // verify id is valid
     if(mongoose.Types.ObjectId.isValid(req.params.idQuiz)) {
         const hasUser = await User.findById(userId);
         const quiz = await DataBase.findById(idQuiz);
 
+        // verify id quiz exist in the user
         if(hasUser) {
+            // max questions:10 and max alternative:5
             if(parseInt(nQuestion) <= 10 && parseInt(nQuestion) > 0) {
                 if(parseInt(nAlternative) <= 5 && parseInt(nAlternative) > 0) {
                     let question: number = parseInt(nQuestion) - 1;
                     let alternative: number = parseInt(nAlternative) - 1;
 
+                    // verify if exist question in quiz
                     if(quiz?.questions[question].alternative[alternative]) {
 
+                        // change alternative and save in db
                         quiz.questions[question].alternative[alternative] = text;
                         await quiz.save()
                             .then(() => {
                                 res.json({ changed: true, text });
+                            })
+                            .catch(err => {
+                                console.log(err);
+                                res.status(400).json({ changed: false });
+                            });
+
+                    } else {
+                        return res.status(400).json({ error: 'question does not exist' });
+                    }
+                    
+                } else {
+                    return res.status(400).json({ error: 'only 5 alternatives' });
+                }
+            } else {
+                return res.status(400).json({ error: 'only 10 questions' });
+            }
+        } else {
+            return res.status(401).json({ error: 'not authorized' });
+        }
+
+    } else {
+        return res.status(400).json({ error: 'id is not valid' });
+    }
+}
+
+export const changeCorrect = async (req: AuthRequest, res: Response) => {
+    const userId = req.userId;
+    const { idQuiz, nQuestion, correct } = req.params;
+
+    // verify id is valid
+    if(mongoose.Types.ObjectId.isValid(req.params.idQuiz)) {
+        const hasUser = await User.findById(userId);
+        const quiz = await DataBase.findById(idQuiz);
+
+        // verify id quiz exist in the user
+        if(hasUser) {
+            // max questions:10 and max alternative correct:5
+            if(parseInt(nQuestion) <= 10 && parseInt(nQuestion) > 0) {
+                if(parseInt(correct) <= 5 && parseInt(correct) > 0) {
+                    let question: number = parseInt(nQuestion) - 1;
+                    let newCorrect: number = parseInt(correct);
+
+                    // verify if exist question in quiz
+                    if(quiz?.questions[question]) {
+
+                        // change correct and save in db
+                        quiz.questions[question].correct = newCorrect;
+                        await quiz.save()
+                            .then(() => {
+                                res.json({ changed: true, newCorrect });
                             })
                             .catch(err => {
                                 console.log(err);
