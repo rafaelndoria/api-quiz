@@ -29,6 +29,7 @@ const router = Router();
 router.post('/login', UserController.login);
 router.post('/create', UserController.register);
 router.get('/users', UserController.allUser);
+router.get('/user-profile', Auth, UserController.showProfile);
 router.get('/user-:id/all-quizzes', UserController.showQuizzes);
 router.put('/change-user/:newPassword?/:newEmail?', Auth, UserController.changeInfo);
 router.put('/user/save/favorite/:idQuiz', Auth, UserController.saveFavorite);

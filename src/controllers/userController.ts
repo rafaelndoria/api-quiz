@@ -179,3 +179,11 @@ export const saveFavorite = async (req: AuthRequest, res: Response) => {
         return res.status(400).json({ error: 'id is not valid' });
     }
 }
+
+export const showProfile = async (req: AuthRequest, res: Response) => {
+    const userId = req.userId;
+
+    let user = await User.findById(userId);
+
+    res.json({ user });
+}
