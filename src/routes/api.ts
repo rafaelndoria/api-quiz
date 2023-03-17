@@ -35,8 +35,8 @@ router.put('/change-user/:newPassword?/:newEmail?', Auth, UserController.changeI
 router.put('/user/save/favorite/:idQuiz', Auth, UserController.saveFavorite);
 
 // CREATE QUIZ
-router.post('/:user/create/quiz/config', Auth, upload.single('img'), CreateQuizController.createConfig);
-router.post('/:idQuiz/create/quiz/question', Auth, CreateQuizController.createQuestion);
+router.post('/create/quiz/config', Auth, upload.single('img'), CreateQuizController.createConfig);
+router.post('/create/quiz-:idQuiz/question', Auth, CreateQuizController.createQuestion);
 router.put('/change-quiz/config/:idQuiz/:title?/:desc?/:type?', Auth, CreateQuizController.changeConfig);
 router.put('/change-quiz/img/:idQuiz', upload.single('img'), Auth, CreateQuizController.changeImg);
 

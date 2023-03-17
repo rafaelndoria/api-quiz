@@ -18,9 +18,9 @@ interface AlternativeInstances {
     a5: string
 }
 
-export const createConfig = async (req: Request, res: Response) => {
-    let user = req.params.user;
-    let hasUser = await User.findOne({ user });
+export const createConfig = async (req: AuthRequest, res: Response) => {
+    let userId = req.userId;
+    let hasUser = await User.findById(userId);
 
     if(hasUser) {
         if(req.body.title && req.body.desc && req.body.type) {
