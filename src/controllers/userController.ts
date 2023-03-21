@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middlewares/auth';
+import { verifyType } from '../helpers/verifyTypeMongo';
 import JWT from 'jsonwebtoken';
 import dotenv from 'dotenv';
-import bcrypt from 'bcrypt';
 import * as UserServices from '../services/UserService';
 
 dotenv.config();
@@ -67,7 +67,7 @@ export const allUser = async (req: Request, res: Response) => {
 
 export const showQuizzes = async (req: Request, res: Response) => {
     const id = req.params.id;
-    const idValid = await UserServices.verifyIdUser(id);
+    const idValid = await verifyType(id);
 
     if(id) {
         if(idValid) {

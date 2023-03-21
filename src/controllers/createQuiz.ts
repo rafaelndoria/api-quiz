@@ -1,26 +1,15 @@
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middlewares/auth';
 import { unlink } from 'fs/promises';
+import { verifyType } from '../helpers/verifyTypeMongo';
+import * as QuizService from '../services/QuizService';
+import * as UserService from '../services/UserService';
 import fs from 'fs';
 import sharp from 'sharp';
-import mongoose from 'mongoose';
-import path from 'path'; 
-import DataBase from '../models/DataBase';
-import User from '../models/User';
-
-interface AlternativeInstances {
-    title: string,
-    correct: number,
-    a1: string,
-    a2: string,
-    a3: string,
-    a4: string,
-    a5: string
-}
+import path from 'path';
 
 export const createConfig = async (req: AuthRequest, res: Response) => {
-    let userId = req.userId;
-    let hasUser = await User.findById(userId);
+    let hasUser = await UserService.findUserById(req.userId as string);
 
     if(hasUser) {
         if(req.body.title && req.body.desc && req.body.type) {
@@ -37,19 +26,12 @@ export const createConfig = async (req: AuthRequest, res: Response) => {
                 await unlink(req.file.path);
 
                 // create new quiz
-                let newQuiz = await DataBase.create({
-                    title,
-                    desc,
-                    type,
-                    img: filename
-                });
-
-                // save new quiz in the user
-                hasUser.data_bases.push(newQuiz.id);
-                await hasUser.save();
+                let newQuiz = await QuizService.createConfig(title, desc, type, filename);
                 
+                // save new quiz in the user
+                UserService.addQuizInUser(req.userId as string, newQuiz.id);
+         
                 res.json({ quiz: newQuiz, userId: hasUser.id });
-
             } else {
                 res.status(400).json({ error: 'error with uploaded file' });
             }
@@ -62,34 +44,23 @@ export const createConfig = async (req: AuthRequest, res: Response) => {
 }
 
 export const createQuestion = async (req: Request, res: Response) => {
-    let quiz;
+    const idQuiz = req.params.idQuiz;
+    const quiz = await QuizService.findById(idQuiz);
 
-    if(mongoose.Types.ObjectId.isValid(req.params.idQuiz)) {
-        quiz = await DataBase.findOne({
-            _id: req.params.idQuiz
-        });
-    } else {
-        res.status(400).json({ error: 'id is not valid' });
-        return;
-    }
+    if(!await verifyType(idQuiz)) {
+        return res.status(400).json({ error: 'id is not valid' });
+    } 
 
     if(quiz) {
-        let {title, correct, a1, a2, a3, a4, a5}: AlternativeInstances = req.body;
+        let {title, correct, a1, a2, a3, a4, a5} = req.body;
 
         if(title && correct && a1 && a2 && a3 && a4 && a5) {
-            let lengthQuiz = quiz.questions.length;
-
-            if(lengthQuiz <= 9) {
-                quiz.questions.push({
-                    titleAsk: title,
-                    alternative: [a1,a2,a3,a4,a5],
-                    correct: correct
-                });
-                await quiz.save();
-    
-                res.json({ quiz: quiz.questions });
+            let questions = await QuizService.createQuestion(idQuiz, title, correct, a1, a2, a3, a4, a5);
+            
+            if(questions instanceof Error) {
+                return res.status(400).json({ error: questions.message });
             } else {
-                res.status(400).json({ error: 'the quiz limit has been reached' });
+                return res.json({ added: true });
             }
             
         } else {
@@ -101,82 +72,56 @@ export const createQuestion = async (req: Request, res: Response) => {
 }
 
 export const changeConfig = async (req: AuthRequest, res: Response) => {
-    const userId = req.userId;
+    const idQuiz = req.params.idQuiz;
+    const canChange = await UserService.verifyAcessChange(req.userId as string, idQuiz);
     const { title, desc, type } = req.params;
 
-    // verify id
-    if(mongoose.Types.ObjectId.isValid(req.params.idQuiz)) {
-        const idQuiz = req.params.idQuiz;
-        const user = await User.findOne({
-            _id: userId,
-            data_bases: idQuiz
-        });
+    if(!canChange) {
+        return res.status(401).json({ error: 'not authorized' });
+    }
 
-        // verify if exist user
-        if(!user) {
-            return res.status(401).json({ error: 'not authorized' });
-        }
-
-        // check if all parameters are false
+    if(await verifyType(idQuiz)) {
         if(title && desc && type) {
             if(title.toLowerCase() === 'false' && desc.toLowerCase() === 'false' && type.toLowerCase() === 'false') {
                 return res.status(400).json({ error: 'nothing parameter for to change' });
             }
         }
-
-        // check if all parameter are dont send
         if(!title && !desc && !type) {
             return res.status(400).json({ error: 'missing data' });
         }
 
         // if parameter is not false, so update in database
         if(title.toLowerCase() !== 'false') {
-            await DataBase.updateOne(
-                { _id: idQuiz },
-                { title }
-            );
+            await QuizService.changeInfo.changeTitle(idQuiz, title);
         }
         if(desc.toLowerCase() !== 'false') {
-            await DataBase.updateOne(
-                { _id: idQuiz },
-                { desc }
-            );
+            await QuizService.changeInfo.changeDesc(idQuiz, desc);
         }
         if(type.toLowerCase() !== 'false') {
-            await DataBase.updateOne(
-                { _id: idQuiz },
-                { type }
-            );
+            await QuizService.changeInfo.changeType(idQuiz, type);
         }
 
-        let quiz = await DataBase.findById(idQuiz);
-        res.json({ changed: true, quiz });
-        
-
+        res.json({ changed: true });
     } else {
         return res.status(400).json({ error: 'id is not valid' });
     }
-
 }
 
 export const changeImg = async (req: AuthRequest, res: Response) => {
-    const userId = req.userId;
+    const idQuiz = req.params.idQuiz;
+    const canChange = await UserService.verifyAcessChange(req.userId as string, idQuiz);
 
-    // verify if id is valid
-    if(mongoose.Types.ObjectId.isValid(req.params.idQuiz)) {
+    if(!canChange) {
+        return res.status(401).json({ error: 'not authorized' });
+    }
 
-        // checks if img is being sent in the request
-        if(req.file) {
-            const idQuiz = req.params.idQuiz;
-            const user = await User.findOne({ _id: userId, data_bases: idQuiz });
-            const quiz = await DataBase.findById(idQuiz);
+    if(await verifyType(idQuiz)) {
+        const quiz = await QuizService.findById(idQuiz);
+        if(!quiz) {
+            return res.status(400).json({ error: 'quiz not found' });
+        }
 
-            // verify if quiz exist
-            if(!quiz) {
-                return res.status(400).json({ error: 'quiz not found' });
-            }
-
-            if(user) {
+        if(req.file) {   
             const oldImgName = quiz.img;
             const pathImg = path.join(__dirname, '../../public/media', oldImgName);
 
@@ -195,26 +140,15 @@ export const changeImg = async (req: AuthRequest, res: Response) => {
                 .toFile(`./public/media/${filename}`);
             
             await unlink(req.file.path);
-            
-            // save filename img in database
-            await DataBase.updateOne(
-                { _id: idQuiz },
-                { img: filename }
-            );
-        
+
+            await QuizService.changeInfo.changeFileNameImg(idQuiz, filename);
+
             res.json({ changed: true, filename });
-
-            } else {
-                return res.status(401).json({ error: 'not authorized' });
-            }
-
         } else {
             return res.status(400).json({ error: 'not send img' });
         }
-        
     } else {
         return res.status(400).json({ error: 'id is not valid' });
     }
- 
 }
 
