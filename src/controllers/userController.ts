@@ -3,25 +3,21 @@ import { AuthRequest } from '../middlewares/auth';
 import JWT from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
-import mongoose from 'mongoose';
-import User from '../models/User';
-import DataBase from '../models/DataBase';
+import * as UserServices from '../services/UserService';
 
 dotenv.config();
 
 export const login = async (req: Request, res: Response) => {
     if(req.body.email && req.body.password) {
         let { email, password } = req.body;
-        let hasUser = await User.findOne({
-            email
-        });
-
-        if(hasUser) {
-            let passwordCorrect = await bcrypt.compare(password, hasUser.password);
+        let user = await UserServices.findUserByEmail(email);
+        
+        if(user) {
+            let passwordCorrect = await UserServices.matchPassword(password, user.password);
 
             if(passwordCorrect) {
                 const token = JWT.sign(
-                    { id: hasUser.id, email: hasUser.email },
+                    { id: user.id, email: user.email },
                     process.env.JWT_SECRET_KEY as string,
                     { expiresIn: '2h' }
                 );
@@ -43,30 +39,19 @@ export const login = async (req: Request, res: Response) => {
 export const register = async (req: Request, res: Response) => {
     if(req.body.email && req.body.password && req.body.user) {
         let { user, email, password } = req.body;
-        let hasUserEmail = await User.findOne({
-            email
-        });
-        let hasUserName = await User.findOne({
-            user
-        });
+        let hasEmail = await UserServices.findUserByEmail(email);
+        let hasUser = await UserServices.findUserByUser(user);
 
-        if(hasUserEmail || hasUserName) {
+        if(hasEmail || hasUser) {
             res.status(400).json({ error: 'email or user already exists' });
         } else {
-            let hashPassword: string = await bcrypt.hash(password, 10);
-            let newUser = await User.create({
-                user,
-                email,
-                password: hashPassword
-            });
-
+            const newUser = await UserServices.registerUser(password, email, user);
             const token = JWT.sign(
-                {id: newUser.id, email: newUser.email},
+                { id: newUser.id, email: newUser.email },
                 process.env.JWT_SECRET_KEY as string,
                 { expiresIn: '2h' }
             );
-
-            res.json({ newUser: newUser, token: token });
+            res.status(401).json({ newUser: newUser, token });
         }
 
     } else {
@@ -75,20 +60,21 @@ export const register = async (req: Request, res: Response) => {
 }
 
 export const allUser = async (req: Request, res: Response) => {
-    let users = await User.find({}, {user: 1, _id: 1});
+    let users = await UserServices.all();
 
     res.json({ users: users });
 }
 
 export const showQuizzes = async (req: Request, res: Response) => {
-    let id = req.params.id;
+    const id = req.params.id;
+    const idValid = await UserServices.verifyIdUser(id);
 
     if(id) {
-        if(mongoose.Types.ObjectId.isValid(id)) {
-            let user = await User.findById(id);
+        if(idValid) {
+            const user = await UserServices.findUserById(id);
 
             if(user) {
-                res.json({ quizzes: user.data_bases });
+                res.json({ quizzes: user.data_bases }); 
             } else {
                 return res.status(400).json({ error: 'user not exist' });
             }
@@ -97,13 +83,14 @@ export const showQuizzes = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'id is not valid' });
         }
     } else {
-        res.status(400).json({ error: 'missing data' });
+        return res.status(400).json({ error: 'missing data' });
     }
 }
 
 export const changeInfo = async (req: AuthRequest, res: Response) => {
     const userId = req.userId;
     const { newPassword, newEmail } = req.params;
+
     let email: boolean = false;
     let password: boolean = false;
 
@@ -114,76 +101,59 @@ export const changeInfo = async (req: AuthRequest, res: Response) => {
 
     // if send password, save new password in database
     if(newPassword.toLowerCase() !== 'false') {
-        const hashPassword: string = await bcrypt.hash(newPassword, 10);
-
-        await User.updateOne(
-            { _id: userId },
-            { password: hashPassword }
-        );
-
-        password = true;
+        password = await UserServices.changeInfo.changePassword(userId as string, newPassword);
     }
 
     // if send email, save new email in database
     if(newEmail.toLowerCase() !== 'false') {
-        const hasEmail = await User.findOne({
-            email: newEmail
-        });
-        if(!hasEmail) {
-            await User.updateOne(
-                { _id: userId },
-                { email: newEmail }
-            );
-        } else {
-            return res.status(400).json({ error: 'email already exist' });
+        let changedEmail = await UserServices.changeInfo.changeEmail(userId as string, newEmail);
+        if(changedEmail instanceof Error) {
+            return res.status(400).json({ error: changedEmail.message });
         }
-
         email = true;
     }
 
-    const user = await User.findById(userId);
-
     if(email && password) {
-        return res.json({ changed: true, newEmail: user?.email, newPassword: user?.password });
+        return res.json({ changed: 'password and email'});
     } else if(email) {
-        return res.json({ changed: true, newEmail: user?.email })
+        return res.json({ changed: 'email'});
     } else {
-        return res.json({ changed: true, newPassword: user?.password })
+        return res.json({ changed: 'password' });
     }
 }
 
-export const saveFavorite = async (req: AuthRequest, res: Response) => {
-    const idUser = req.userId;
+// export const saveFavorite = async (req: AuthRequest, res: Response) => {
+//     const idUser = req.userId;
 
-    // verify if id is valid
-    if(mongoose.Types.ObjectId.isValid(req.params.idQuiz)) {
-        const idQuiz = req.params.idQuiz;
-        const user = await User.findById(idUser);
-        const quiz = await DataBase.findById(idQuiz);
+//     // verify if id is valid
+//     if(mongoose.Types.ObjectId.isValid(req.params.idQuiz)) {
+//         const idQuiz = req.params.idQuiz;
+//         const user = await User.findById(idUser);
+//         const quiz = await DataBase.findById(idQuiz);
 
-        // verify if user exist
-        if(user) {
-            // verify if quiz exist, because dont will save a quiz that does not exist
-            if(quiz) {
-                // adding favorite quiz in field favorites the user
-                user.favorites.push(idQuiz);
-                await user.save();
+//         // verify if user exist
+//         if(user) {
+//             // verify if quiz exist, because dont will save a quiz that does not exist
+//             if(quiz) {
+//                 // adding favorite quiz in field favorites the user
+//                 user.favorites.push(idQuiz);
+//                 await user.save();
 
-                return res.json({ idQuiz, favorites: user.favorites });
-            } else {
-                return res.status(400).json({ error: 'quiz does not exist' });
-            }
-        }
+//                 return res.json({ idQuiz, favorites: user.favorites });
+//             } else {
+//                 return res.status(400).json({ error: 'quiz does not exist' });
+//             }
+//         }
 
-    } else {
-        return res.status(400).json({ error: 'id is not valid' });
-    }
-}
+//     } else {
+//         return res.status(400).json({ error: 'id is not valid' });
+//     }
+// }
 
 export const showProfile = async (req: AuthRequest, res: Response) => {
     const userId = req.userId;
 
-    let user = await User.findById(userId);
+    const user = await UserServices.findUserById(userId as string);
 
     res.json({ user });
 }
