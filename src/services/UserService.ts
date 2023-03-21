@@ -1,5 +1,4 @@
 import bcrypt from 'bcrypt';
-import mongoose from 'mongoose';
 import User from '../models/User';
 
 export const findUserByEmail = async (email: string) => {
@@ -44,10 +43,6 @@ export const all = async () => {
     return await User.find({}, {user: 1, _id: 1});
 }
 
-export const verifyIdUser = async (id: string) => {
-    return mongoose.Types.ObjectId.isValid(id);
-}
-
 export const changeInfo = {
     changePassword: async (id: string, password: string) => {
         const hash = bcrypt.hashSync(password, 10);
@@ -72,5 +67,29 @@ export const changeInfo = {
         } else {
             return new Error('email already exists');
         }
+    }
+}
+
+export const addQuizInUser = async (idUser: string, idQuiz: string) => {
+    const user = await findUserById(idUser);
+
+    if(user) {
+        user.data_bases.push(idQuiz);
+        return await user.save();
+    } else {
+        return new Error('user does not exist');
+    }
+}
+
+export const verifyAcessChange = async (idUser: string, idQuiz: string) => {
+    const user = await User.findOne({
+        _id: idUser,
+        data_bases: idQuiz
+    });
+
+    if(user) {
+        return true;
+    } else {
+        return false;
     }
 }
