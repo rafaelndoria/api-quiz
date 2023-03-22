@@ -1,53 +1,37 @@
 import { Request, Response } from 'express';
-import DataBase from '../models/DataBase';
+import * as QuizServices from '../services/QuizService';
 
 export const search = async (req: Request, res: Response) => {
-    let text = req.params.text;
-    let regex = new RegExp(text, 'i');
-    let quiz = await DataBase.find({
-        $or: [{ title: regex }, { desc: regex }]
-    });
+    const quiz = await QuizServices.findByText(req.params.text);
 
-    if(quiz.length >= 1) {
-        res.json({ quiz });
+    if(quiz instanceof Error) {
+        res.status(400).json({ error: quiz.message });
     } else {
-        res.status(400).json({ error: 'parameter not found' });
+        res.json({ quiz });
     }
 }
 
 export const searchTypes = async (req: Request, res: Response) => {
-    let search = req.params.type;
+    const quiz = await QuizServices.findByType(req.params.type);
 
-    let quiz = await DataBase.find({
-        type: search
-    });
-
-    if(quiz.length >= 1) {
-        res.json({ quiz: quiz });
+    if(quiz instanceof Error) {
+        res.status(400).json({ error: quiz.message });
     } else {
-        res.json({ error: 'quizs type does not exist' });
+        res.json({ quiz });
     }
 }
 
 export const order = async (req: Request, res: Response) => {
     const order = req.params.type;
+    const quiz = await QuizServices.order(order);
 
     if(!order) {
         return res.status(400).json({ error: 'missing data' });
     }
 
-    if(order.toLowerCase() === 'most' || order.toLowerCase() === 'less') {
-        
-        if(order.toLowerCase() === 'most') {
-            let quiz = await DataBase.find({}).sort({ plays: -1 });
-            res.json({ quiz });
-        } else {
-            let quiz = await DataBase.find({}).sort({ plays: 1 });
-            res.json({ quiz });
-        }
-        
-
+    if(quiz instanceof Error) {
+        return res.status(400).json({ error: quiz.message })
     } else {
-        return res.status(400).json({ error: 'order type invalid, only most or less' });
+        return res.json({ quiz });
     }
 }
