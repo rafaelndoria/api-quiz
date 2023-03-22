@@ -15,6 +15,45 @@ export const findById = async (id: string) => {
     return await DataBase.findById(id);
 }
 
+export const findByText = async (text: string) => {
+    const regex = new RegExp(text, 'i');
+
+    const hasQuiz = await DataBase.find({
+        $or: [{ title: regex }, { desc: regex }]
+    });
+
+    if(hasQuiz.length >= 1) {
+        return hasQuiz;
+    } else {
+        return new Error('quizs does not exist');
+    }
+}
+
+export const findByType = async (type: string) => {
+    const quiz = await DataBase.find({ type });
+
+    if(quiz.length >= 1) {
+        return quiz
+    } else {
+        return new Error('quizs type does not exist');
+    }
+}
+
+export const order = async (type: string) => {
+    const tp = type.toLowerCase();
+    const verifyType = tp === 'most' || tp === 'less' ? true : false;
+
+    if(!verifyType) {
+        return new Error('order type invalid, only most or less');
+    }
+
+    if(tp === 'most') {
+        return await DataBase.find({}).sort({ plays: -1 });
+    } else {
+        return await DataBase.find({}).sort({ plays: 1 });
+    }
+}
+
 export const createQuestion = async (idQuiz: string, title: string, correct: number, a1: string, a2: string, a3: string, a4: string, a5: string) => {
     const quiz = await findById(idQuiz);
     
