@@ -4,6 +4,7 @@ import { verifyType } from '../helpers/verifyTypeMongo';
 import JWT from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import * as UserServices from '../services/UserService';
+import * as QuizServices from '../services/QuizService';
 
 dotenv.config();
 
@@ -122,33 +123,31 @@ export const changeInfo = async (req: AuthRequest, res: Response) => {
     }
 }
 
-// export const saveFavorite = async (req: AuthRequest, res: Response) => {
-//     const idUser = req.userId;
+export const saveFavorite = async (req: AuthRequest, res: Response) => {
+    const idQuiz = req.params.idQuiz;
 
-//     // verify if id is valid
-//     if(mongoose.Types.ObjectId.isValid(req.params.idQuiz)) {
-//         const idQuiz = req.params.idQuiz;
-//         const user = await User.findById(idUser);
-//         const quiz = await DataBase.findById(idQuiz);
+    // verify if id is valid
+    if(await verifyType(idQuiz)) {
+        const user = await UserServices.findUserById(req.userId as string);
+        const quiz = await QuizServices.findById(idQuiz);
 
-//         // verify if user exist
-//         if(user) {
-//             // verify if quiz exist, because dont will save a quiz that does not exist
-//             if(quiz) {
-//                 // adding favorite quiz in field favorites the user
-//                 user.favorites.push(idQuiz);
-//                 await user.save();
+        // verify if user exist
+        if(user) {
+            // verify if quiz exist, because dont will save a quiz that does not exist
+            if(quiz) {
+                // adding favorite quiz in field favorites the user
+                await UserServices.addQuizInUser(req.userId as string, idQuiz);
 
-//                 return res.json({ idQuiz, favorites: user.favorites });
-//             } else {
-//                 return res.status(400).json({ error: 'quiz does not exist' });
-//             }
-//         }
+                return res.json({ idQuiz, favorites: user.favorites });
+            } else {
+                return res.status(400).json({ error: 'quiz does not exist' });
+            }
+        }
 
-//     } else {
-//         return res.status(400).json({ error: 'id is not valid' });
-//     }
-// }
+    } else {
+        return res.status(400).json({ error: 'id is not valid' });
+    }
+}
 
 export const showProfile = async (req: AuthRequest, res: Response) => {
     const userId = req.userId;
