@@ -1,152 +1,117 @@
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middlewares/auth';
-import mongoose from 'mongoose';
-import DataBase from '../models/DataBase';
-import User from '../models/User';
+import { verifyType } from '../helpers/verifyTypeMongo';
+import * as QuizServices from '../services/QuizService';
+import * as UserServices from '../services/UserService';
 
 export const allQuiz = async (req: Request, res: Response) => {
-    let quizzes = await DataBase.find({});
-
+    let quizzes = await QuizServices.all();
     res.json({ quizzes: quizzes });
 }
 
 export const idQuiz = async (req: Request, res: Response) => {
-    let id = req.params.id;
+    const idQuiz = req.params.id;
 
-    if(id) {
-        if(mongoose.Types.ObjectId.isValid(id)) {
-            let quiz = await DataBase.findById(id);
-
-            if(quiz) {
-                res.json({ quiz });
-            } else {
-                return res.status(400).json({ error: 'quiz not exist' });
-            }
-
-        } else {
-            return res.status(400).json({ error: 'id is not valid' });
-        }
-    } else {
+    if(!idQuiz) {
         res.status(400).json({ error: 'missing data' });
     }
-    
+
+    if(await verifyType(idQuiz)) {
+        let quiz = await QuizServices.findById(idQuiz);
+
+        if(quiz) {
+            res.json({ quiz });
+        } else {
+            return res.status(400).json({ error: 'quiz not exist' });
+        }
+    } else {
+        return res.status(400).json({ error: 'id is not valid' });
+    }
 }
 
 export const filterQuiz = async (req: Request, res: Response) => {
-   
     if(req.params.offset && req.params.pageNumber) {
-        let offset: number = parseInt(req.params.offset);
-        let pageNumber: number = parseInt(req.params.pageNumber) - 1;
+        const offset = parseInt(req.params.offset);
+        const page = parseInt(req.params.pageNumber);
+        const quiz = await QuizServices.filterQuiz(offset, page);
 
-        if(pageNumber >= 0) {
-
-            let quiz = await DataBase.find({}).limit(offset).skip(pageNumber);
-
-            res.json({ quizzes: quiz });
+        if(quiz instanceof Error) {
+            return res.status(400).json({ error: quiz.message });
         } else {
-            return res.status(400).json({ error: 'page invalid' });
+            return res.json({ quiz });
         }
 
     } else {
         return res.status(400).json({ error: 'missing data' });
     }
-
 }
 
 export const deleteQuiz = async (req: AuthRequest, res: Response) => {
-    const userId = req.userId;
-    const quizId = req.params.idQuiz;
-    const userQuiz = await User.findOne({
-        data_bases: quizId,
-        _id: userId
-    });
+    const idQuiz = req.params.idQuiz;
 
-    if (!quizId) {
+    if(!idQuiz) {
         return res.status(400).json({ error: 'missing data' });
     }
 
-    if(userQuiz) {
-
-        await DataBase.deleteOne({
-            _id: quizId
-        }).then(() => {
-            res.json({ delete: true });
-        }).catch((err) => {
-            console.log(err);
-            res.json({ delete: false });
-        });
-
+    if(await verifyType(idQuiz)) {
+        const hasQuiz = await QuizServices.findById(idQuiz);
+        if(!hasQuiz) {
+            return res.status(400).json({ error: 'quiz not found' });
+        } else {
+            const verifyAcess = await UserServices.verifyAcessChange(req.userId as string, idQuiz);
+            if(verifyAcess) {
+                await QuizServices.deleteQuiz(idQuiz, req.userId as string);
+                res.json({ deleted: true });
+            } else {
+                res.status(401).json({ error: 'not authorized, only users quiz' });
+            }
+        }
     } else {
-        res.status(401).json({ error: 'not authorized, only users quiz' });
+        return res.status(400).json({ error: 'id is not valid' });
     }
-
 }
 
 export const playQuiz = async (req: Request, res: Response) => {
-    if(req.params.idQuiz) {
-        const idQuiz = req.params.idQuiz;
-
-        if(mongoose.Types.ObjectId.isValid(idQuiz)) {
-            let hasQuiz = await DataBase.findById(idQuiz);
-
-            // add more one count in plays for quiz
-            if(hasQuiz) {
-                let plays = hasQuiz.plays;
-                hasQuiz.plays = plays + 1;
-                await hasQuiz.save();
-
-                res.json({ questions: hasQuiz.questions });
-
-            } else {
-                return res.status(400).json({ error: 'quiz not found' });
-            }
-
-
-        } else {
-        return res.status(400).json({ error: 'id is not valid' });
-        }
-
-    } else {    
+    const idQuiz = req.params.idQuiz;
+    
+    if(!idQuiz) {
         return res.status(400).json({ error: 'missing data' });
+    } 
+
+    if(await verifyType(idQuiz)) {
+        const hasQuiz = await QuizServices.findById(idQuiz);
+        if(!hasQuiz) {
+            return res.status(400).json({ error: 'quiz not found' });
+        } else {
+            const quiz = await QuizServices.playQuiz(idQuiz);
+            return res.json({ questions: quiz });
+        }
+    } else {
+    return res.status(400).json({ error: 'id is not valid' });
     }
 }
 
 export const changeQuestion = async (req: AuthRequest, res: Response) => {
-    let { idQuiz, nQuestion, newTitle } = req.params;
+    let { idQuiz, newTitle } = req.params;
+    const nQuestion = parseInt(req.params.nQuestion);
 
-    // verify if send all parameters
     if(idQuiz && nQuestion && newTitle) {
-        // verify id is valid
-        if(mongoose.Types.ObjectId.isValid(req.params.idQuiz)) {
-            let idQuiz = req.params.idQuiz;
-            let userId = req.userId;
-            let hasUser = await User.findOne(
-                { _id: userId, data_bases: idQuiz }
-            );
+        if(await verifyType(idQuiz)) {
+            const verifyAcess = await UserServices.verifyAcessChange(req.userId as string, idQuiz);
             
-            // check if not found quiz in the user
-            if(!hasUser) {
+            if(!verifyAcess) {
                 return res.status(401).json({ error: 'not authorized' });
             }
 
             // max questions is 10
-            if(parseInt(nQuestion) <= 10 && parseInt(nQuestion) > 0) {
-                let number: number = parseInt(nQuestion) - 1;
-                let quiz = await DataBase.findById(idQuiz);
+            if(nQuestion <= 10 && nQuestion > 0) {
+                const quiz = await QuizServices.changeQuestion(nQuestion, idQuiz, newTitle);
 
-                // verify if exist question with number 
-                if(quiz?.questions[number]) {
-
-                    // change title and save in database
-                    quiz.questions[number].titleAsk = newTitle;
-                    await quiz.save();
-
-                    return res.json({ newTitle: quiz.questions[number].titleAsk });
-
+                if(quiz instanceof Error) {
+                    return res.status(400).json({ error: quiz.message });
                 } else {
-                    return res.status(400).json({ error: 'question not exist' });
+                    return res.json({ changed: true, newTitle: quiz });
                 }
-
             } else {
                 return res.status(400).json({ error: 'number page is not valid' });
             }
@@ -162,40 +127,24 @@ export const changeQuestion = async (req: AuthRequest, res: Response) => {
 }
 
 export const changeAlterntative = async (req: AuthRequest, res: Response) => {
-    const userId = req.userId;
-    const { idQuiz, nAlternative, nQuestion, text } = req.params;
+    const { idQuiz, text } = req.params;
+    const nAlternative = parseInt(req.params.nAlternative);
+    const nQuestion = parseInt(req.params.nQuestion);
 
-    // verify id is valid
-    if(mongoose.Types.ObjectId.isValid(req.params.idQuiz)) {
-        const hasUser = await User.findById(userId);
-        const quiz = await DataBase.findById(idQuiz);
+    if(await verifyType(idQuiz)) {
+        const verifyAcess = await UserServices.verifyAcessChange(req.userId as string, idQuiz);
 
-        // verify id quiz exist in the user
-        if(hasUser) {
+        if(verifyAcess) {
             // max questions:10 and max alternative:5
-            if(parseInt(nQuestion) <= 10 && parseInt(nQuestion) > 0) {
-                if(parseInt(nAlternative) <= 5 && parseInt(nAlternative) > 0) {
-                    let question: number = parseInt(nQuestion) - 1;
-                    let alternative: number = parseInt(nAlternative) - 1;
+            if(nQuestion <= 10 && nQuestion > 0) {
+                if(nAlternative <= 5 && nAlternative > 0) {
+                    const quiz = await QuizServices.changeAlterntative(nQuestion, nAlternative, idQuiz, text);
 
-                    // verify if exist question in quiz
-                    if(quiz?.questions[question].alternative[alternative]) {
-
-                        // change alternative and save in db
-                        quiz.questions[question].alternative[alternative] = text;
-                        await quiz.save()
-                            .then(() => {
-                                res.json({ changed: true, text });
-                            })
-                            .catch(err => {
-                                console.log(err);
-                                res.status(400).json({ changed: false });
-                            });
-
+                    if(quiz instanceof Error) {
+                        return res.status(400).json({ error: quiz.message });
                     } else {
-                        return res.status(400).json({ error: 'question does not exist' });
+                        return res.json({ changed: true, quiz });
                     }
-                    
                 } else {
                     return res.status(400).json({ error: 'only 5 alternatives' });
                 }
@@ -205,47 +154,30 @@ export const changeAlterntative = async (req: AuthRequest, res: Response) => {
         } else {
             return res.status(401).json({ error: 'not authorized' });
         }
-
     } else {
         return res.status(400).json({ error: 'id is not valid' });
     }
 }
 
 export const changeCorrect = async (req: AuthRequest, res: Response) => {
-    const userId = req.userId;
-    const { idQuiz, nQuestion, correct } = req.params;
+    const idQuiz  = req.params.idQuiz;
+    const nQuestion = parseInt(req.params.nQuestion);
+    const correct = parseInt(req.params.correct);
 
-    // verify id is valid
-    if(mongoose.Types.ObjectId.isValid(req.params.idQuiz)) {
-        const hasUser = await User.findById(userId);
-        const quiz = await DataBase.findById(idQuiz);
+    if(await verifyType(idQuiz)) {
+        const verifyAcess = await UserServices.verifyAcessChange(req.userId as string, idQuiz);
 
-        // verify id quiz exist in the user
-        if(hasUser) {
-            // max questions:10 and max alternative correct:5
-            if(parseInt(nQuestion) <= 10 && parseInt(nQuestion) > 0) {
-                if(parseInt(correct) <= 5 && parseInt(correct) > 0) {
-                    let question: number = parseInt(nQuestion) - 1;
-                    let newCorrect: number = parseInt(correct);
+        if(verifyAcess) {
+            // max questions:10 and max alternative:5
+            if(nQuestion <= 10 && nQuestion > 0) {
+                if(correct <= 5 && correct > 0) {
+                    const quiz = await QuizServices.changeCorrect(nQuestion, idQuiz, correct);
 
-                    // verify if exist question in quiz
-                    if(quiz?.questions[question]) {
-
-                        // change correct and save in db
-                        quiz.questions[question].correct = newCorrect;
-                        await quiz.save()
-                            .then(() => {
-                                res.json({ changed: true, newCorrect });
-                            })
-                            .catch(err => {
-                                console.log(err);
-                                res.status(400).json({ changed: false });
-                            });
-
+                    if(quiz instanceof Error) {
+                        return res.status(400).json({ error: quiz.message });
                     } else {
-                        return res.status(400).json({ error: 'question does not exist' });
+                        return res.json({ changed: true, quiz });
                     }
-                    
                 } else {
                     return res.status(400).json({ error: 'only 5 alternatives' });
                 }
@@ -255,7 +187,6 @@ export const changeCorrect = async (req: AuthRequest, res: Response) => {
         } else {
             return res.status(401).json({ error: 'not authorized' });
         }
-
     } else {
         return res.status(400).json({ error: 'id is not valid' });
     }
