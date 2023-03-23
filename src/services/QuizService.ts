@@ -1,4 +1,5 @@
 import DataBase from '../models/DataBase';
+import { removeQuizFavorite } from '../helpers/removeFavoriteQuiz';
 
 export const createConfig = async (title: string, desc: string, type: string, filename: string) => {
     const newQuiz = await DataBase.create({
@@ -102,5 +103,86 @@ export const changeInfo = {
             { img: filename }
         ).then(() => true)
         .catch(() => false);
+    }
+}
+
+export const all = async () => {
+    return await DataBase.find({});
+}
+
+export const filterQuiz = async (off: number, pageNumber: number) => {
+    const offset = off;
+    const page = pageNumber - 1;
+
+    if(page >= 0) {
+        return await DataBase.find({}).limit(offset).skip(page); 
+    } else {
+        return new Error('page invalid');
+    }
+}
+
+
+export const deleteQuiz = async (idQuiz: string, idUser: string) => {
+    await DataBase.deleteOne({
+        _id: idQuiz
+    });
+    removeQuizFavorite(idQuiz, idUser);
+    return true;
+}
+
+export const playQuiz = async (idQuiz: string) => {
+    const quiz = await findById(idQuiz);
+
+    if(quiz) {
+        let quizPlays = quiz?.plays;
+        quiz.plays = quizPlays + 1
+        await quiz.save();
+        return quiz.questions;
+    }
+}
+
+export const changeQuestion = async (nQuestion: number, idQuiz: string, newTitle: string) => {
+    const quiz = await findById(idQuiz);
+    const question = nQuestion - 1;
+
+    if(quiz) {
+        if(quiz.questions[question]) {
+            quiz.questions[question].titleAsk = newTitle;
+            await quiz.save();
+            return quiz.questions[question].titleAsk;
+        } else {
+            return new Error('question not exist');
+        }
+    }
+}
+
+export const changeAlterntative = async (nQuestion: number, nAlternative: number, idQuiz: string, newText: string) => {
+    const quiz = await findById(idQuiz);
+    const question = nQuestion - 1;
+    const alternative = nAlternative - 1;
+
+    if(quiz) {
+        if(quiz.questions[question].alternative[alternative]) {
+            quiz.questions[question].alternative[alternative] = newText;
+            await quiz.save();
+            return quiz.questions[question].alternative[alternative];
+        } else {
+            return new Error('question does not exist');
+        }
+    }
+}
+
+export const changeCorrect = async (nQuestion: number, idQuiz: string, newCorrect: number) => {
+    const quiz = await findById(idQuiz);
+    const question = nQuestion - 1;
+
+    if(quiz) {
+        if(quiz.questions[question].correct) {
+            quiz.questions[question].correct = newCorrect;
+            await quiz.save();
+            return quiz.questions[question].correct;
+        } else {
+            return new Error('question does not exist');
+        }
     }
 }
